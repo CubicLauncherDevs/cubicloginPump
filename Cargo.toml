@@ -11,9 +11,16 @@ crate-type = ["cdylib"]
 
 [dependencies]
 pumpkin-plugin-api = { git = "https://github.com/Pumpkin-MC/Pumpkin.git", branch = "master", package = "pumpkin-plugin-api" }
+aes-gcm = { version = "0.10", default-features = false, features = ["aes", "alloc"] }
+argon2 = { version = "0.5", default-features = false, features = ["alloc"] }
+getrandom = "0.3"
+postcard = { version = "1.0", features = ["alloc"] }
+redb = "4"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+subtle = "2"
 tracing = "0.1"
+zeroize = { version = "1", features = ["alloc"] }
 
 [profile.release]
 opt-level = "s"

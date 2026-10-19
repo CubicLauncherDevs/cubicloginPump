@@ -2,12 +2,13 @@ use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 
 use crate::config::PluginConfig;
-use crate::storage::AccountStore;
+use crate::db::AccountRepo;
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct PluginState {
     pub config: PluginConfig,
-    pub accounts: AccountStore,
+    pub store: Option<Arc<dyn AccountRepo>>,
+    pub pepper: Option<Vec<u8>>,
     pub data_dir: PathBuf,
 }
 

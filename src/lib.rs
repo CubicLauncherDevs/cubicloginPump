@@ -1,5 +1,6 @@
 mod commands;
 mod config;
+mod db;
 mod events;
 mod permissions;
 mod state;
@@ -40,7 +41,8 @@ impl Plugin for CubicLoginPlugin {
     fn on_load(&self, context: Context) -> Result<()> {
         let data_dir = PathBuf::from(context.get_data_folder());
         let loaded_config = config::load_or_create(&data_dir)?;
-        let loaded_accounts = storage::load_or_create(&data_dir)?;
+        let pepper = db::resolve_pepper(&loaded_config.config);
+        let store = db::open(&data_dir, &loaded_config.config)?;
 
         {
             let mut state = self
@@ -49,7 +51,8 @@ impl Plugin for CubicLoginPlugin {
                 .map_err(|_| "plugin state lock poisoned".to_string())?;
 
             state.config = loaded_config.config;
-            state.accounts = loaded_accounts.store;
+            state.store = Some(store);
+            state.pepper = pepper;
             state.data_dir = data_dir.clone();
         }
 
@@ -59,7 +62,6 @@ impl Plugin for CubicLoginPlugin {
 
         tracing::info!(
             config = %loaded_config.path.display(),
-            accounts = %loaded_accounts.path.display(),
             data_dir = %data_dir.display(),
             "CubicLogin loaded"
         );
