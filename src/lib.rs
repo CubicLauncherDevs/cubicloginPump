@@ -27,7 +27,7 @@ impl Plugin for CubicLoginPlugin {
         PluginMetadata {
             name: "CubicLogin".to_string(),
             version: env!("CARGO_PKG_VERSION").to_string(),
-            authors: vec!["notstaff".to_string()],
+            authors: vec!["CubicLauncherDevs".to_string()],
             description: "Authentication plugin for Pumpkin servers".to_string(),
             dependencies: Vec::new(),
             permissions: vec![
