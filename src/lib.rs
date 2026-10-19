@@ -69,7 +69,15 @@ impl Plugin for CubicLoginPlugin {
         Ok(())
     }
 
-    fn on_unload(&self, _context: Context) -> Result<()> {
+    fn on_unload(&self, context: Context) -> Result<()> {
+        for player in context.get_server().get_all_players() {
+            player.set_movement_locked(false);
+        }
+
+        if let Ok(mut state) = self.state.write() {
+            state.authenticated.clear();
+        }
+
         tracing::info!("CubicLogin unloaded");
         Ok(())
     }

@@ -9,12 +9,17 @@ use zeroize::Zeroize;
 use crate::db::hashing;
 use crate::permissions;
 use crate::state::SharedState;
-use crate::storage::{AccountRecord, now_secs, validate_username};
+use crate::storage::{AccountRecord, now_secs, validate_password, validate_username};
 
 pub fn register_command(context: &Context, state: SharedState) -> Result<(), String> {
     let command = Command::new(&["register".to_string()], "Create a CubicLogin account").then(
-        CommandNode::argument("password", &ArgumentType::String(StringType::SingleWord))
+        CommandNode::argument("password", &ArgumentType::String(StringType::SingleWord)).then(
+            CommandNode::argument(
+                "confirm_password",
+                &ArgumentType::String(StringType::SingleWord),
+            )
             .execute(RegisterCommand { state }),
+        ),
     );
 
     context.register_command(command, permissions::REGISTER);
@@ -37,9 +42,18 @@ impl CommandHandler for RegisterCommand {
             _ => return Err(CommandError::InvalidConsumption(None)),
         };
 
+        let mut confirm_password = match args.get_value("confirm_password") {
+            Arg::Simple(value) => value,
+            _ => {
+                password.zeroize();
+                return Err(CommandError::InvalidConsumption(None));
+            }
+        };
+
         let Some(player) = sender.as_player() else {
             sender.send_error(TextComponent::text("Only players can use /register."));
             password.zeroize();
+            confirm_password.zeroize();
             return Ok(0);
         };
 
@@ -48,11 +62,26 @@ impl CommandHandler for RegisterCommand {
         if let Err(reason) = validate_username(&username) {
             sender.send_error(TextComponent::text(&reason));
             password.zeroize();
+            confirm_password.zeroize();
             return Ok(0);
         }
 
+        if password != confirm_password {
+            sender.send_error(TextComponent::text("The passwords do not match."));
+            password.zeroize();
+            confirm_password.zeroize();
+            return Ok(0);
+        }
+        confirm_password.zeroize();
+
         let (store, config, pepper) = {
-            let state = self.state.read().map_err(|_| state_unavailable())?;
+            let state = match self.state.read() {
+                Ok(state) => state,
+                Err(_) => {
+                    password.zeroize();
+                    return Err(state_unavailable());
+                }
+            };
             let Some(store) = state.store.clone() else {
                 drop(state);
                 sender.send_error(TextComponent::text("CubicLogin storage is unavailable."));
@@ -63,20 +92,12 @@ impl CommandHandler for RegisterCommand {
             (store, state.config.clone(), state.pepper.clone())
         };
 
-        if password.len() < config.min_password_length {
-            sender.send_error(TextComponent::text(&format!(
-                "The password must contain at least {} characters.",
-                config.min_password_length
-            )));
-            password.zeroize();
-            return Ok(0);
-        }
-
-        if password.len() > config.max_password_length {
-            sender.send_error(TextComponent::text(&format!(
-                "The password must contain at most {} characters.",
-                config.max_password_length
-            )));
+        if let Err(reason) = validate_password(
+            &password,
+            config.min_password_length,
+            config.max_password_length,
+        ) {
+            sender.send_error(TextComponent::text(&reason));
             password.zeroize();
             return Ok(0);
         }
@@ -130,9 +151,14 @@ impl CommandHandler for RegisterCommand {
 
         match store.create(&username, &record) {
             Ok(true) => {
-                tracing::info!(player = %username, "registered CubicLogin account");
+                if let Ok(mut state) = self.state.write() {
+                    state.mark_authenticated(&username);
+                }
+                player.set_movement_locked(false);
+
+                tracing::info!(player = %username, "registered and authenticated CubicLogin account");
                 sender.send_message(TextComponent::text(
-                    "Registration successful. Use /login to authenticate.",
+                    "Registration successful. You are now logged in.",
                 ));
                 Ok(1)
             }

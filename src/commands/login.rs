@@ -63,7 +63,13 @@ impl CommandHandler for LoginCommand {
         }
 
         let (store, config, pepper) = {
-            let state = self.state.read().map_err(|_| state_unavailable())?;
+            let state = match self.state.read() {
+                Ok(state) => state,
+                Err(_) => {
+                    password.zeroize();
+                    return Err(state_unavailable());
+                }
+            };
             let Some(store) = state.store.clone() else {
                 drop(state);
                 sender.send_error(TextComponent::text("CubicLogin storage is unavailable."));
@@ -127,6 +133,11 @@ impl CommandHandler for LoginCommand {
             if let Err(error) = store.upsert(&username, &updated) {
                 tracing::error!(error = %error, "failed to update account after login");
             }
+
+            if let Ok(mut state) = self.state.write() {
+                state.mark_authenticated(&username);
+            }
+            player.set_movement_locked(false);
 
             tracing::info!(player = %username, "authenticated CubicLogin account");
             sender.send_message(TextComponent::text("Login successful."));

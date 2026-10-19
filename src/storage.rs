@@ -51,6 +51,26 @@ pub fn validate_username(username: &str) -> Result<(), String> {
     Ok(())
 }
 
+pub fn validate_password(
+    password: &str,
+    min_length: usize,
+    max_length: usize,
+) -> Result<(), String> {
+    if password.len() < min_length {
+        return Err(format!(
+            "The password must contain at least {min_length} characters."
+        ));
+    }
+
+    if password.len() > max_length {
+        return Err(format!(
+            "The password must contain at most {max_length} characters."
+        ));
+    }
+
+    Ok(())
+}
+
 pub fn now_secs() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -100,6 +120,13 @@ mod tests {
         assert!(validate_username("bad name").is_err());
         assert!(validate_username("bad-name").is_err());
         assert!(validate_username("Steve_01").is_ok());
+    }
+
+    #[test]
+    fn validates_password_length() {
+        assert!(validate_password("short", 8, 64).is_err());
+        assert!(validate_password("long-enough", 8, 64).is_ok());
+        assert!(validate_password(&"a".repeat(65), 8, 64).is_err());
     }
 
     fn record() -> AccountRecord {
