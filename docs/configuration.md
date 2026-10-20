@@ -1,5 +1,7 @@
 # Configuration
 
+**English** | [Español](configuration.es.md)
+
 CubicLogin reads its configuration from:
 
 ```text

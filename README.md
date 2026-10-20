@@ -1,5 +1,7 @@
 # CubicLogin
 
+[English](README.en.md) | **Español**
+
 Plugin de autenticación para el servidor de Minecraft [Pumpkin](https://github.com/Pumpkin-MC/Pumpkin).
 
 CubicLogin guarda las cuentas en una base de datos redb cifrada, protege las contraseñas con
@@ -92,8 +94,8 @@ plugins/data/CubicLogin/
 ## Configuración
 
 La configuración está en `plugins/data/CubicLogin/config.toml` y se carga al iniciar el servidor.
-Consulta [docs/configuration.md](docs/configuration.md) para la referencia completa, los modos de
-cifrado y las notas de migración (documentación en inglés).
+Consulta [docs/configuration.es.md](docs/configuration.es.md) para la referencia completa, los modos
+de cifrado y las notas de migración.
 
 ```toml
 language = "en"
@@ -114,8 +116,8 @@ seleccionan con la opción `language`. Los idiomas incluidos son inglés (`en`) 
 claves que falten usan el texto inglés, y los idiomas personalizados solo necesitan las claves que
 quieran sobrescribir.
 
-Consulta [docs/languages.md](docs/languages.md) para la referencia de claves, marcadores y códigos
-de color (documentación en inglés).
+Consulta [docs/languages.es.md](docs/languages.es.md) para la referencia de claves, marcadores y
+códigos de color.
 
 ## Seguridad
 

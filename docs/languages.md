@@ -1,5 +1,7 @@
 # Languages
 
+**English** | [Español](languages.es.md)
+
 Player-facing messages are stored separately from the main configuration:
 
 ```text
