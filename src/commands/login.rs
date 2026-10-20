@@ -1,12 +1,15 @@
+use std::sync::Arc;
+
 use pumpkin_plugin_api::command::{
     Arg, ArgumentType, Command, CommandError, CommandNode, CommandSender, ConsumedArgs, StringType,
 };
 use pumpkin_plugin_api::commands::CommandHandler;
-use pumpkin_plugin_api::text::TextComponent;
 use pumpkin_plugin_api::{Context, Server};
 use zeroize::Zeroize;
 
+use crate::config::DEFAULT_PREFIX;
 use crate::db::hashing;
+use crate::i18n::{MessageTexts, format_text, prefixed};
 use crate::permissions;
 use crate::state::SharedState;
 use crate::storage::{
@@ -44,25 +47,13 @@ impl CommandHandler for LoginCommand {
         };
 
         let Some(player) = sender.as_player() else {
-            sender.send_error(TextComponent::text("Only players can use /login."));
+            let (messages, prefix) = ui_fallback();
+            sender.send_error(prefixed(&prefix, &messages.only_players_login));
             password.zeroize();
             return Ok(0);
         };
 
-        let username = normalize_username(&player.get_name());
-
-        if let Err(reason) = validate_username(&username) {
-            sender.send_error(TextComponent::text(&reason));
-            password.zeroize();
-            return Ok(0);
-        }
-
-        if password.is_empty() {
-            sender.send_error(TextComponent::text("The password cannot be empty."));
-            return Ok(0);
-        }
-
-        let (store, config, pepper) = {
+        let (store, config, pepper, messages, prefix) = {
             let state = match self.state.read() {
                 Ok(state) => state,
                 Err(_) => {
@@ -70,15 +61,35 @@ impl CommandHandler for LoginCommand {
                     return Err(state_unavailable());
                 }
             };
-            let Some(store) = state.store.clone() else {
-                drop(state);
-                sender.send_error(TextComponent::text("CubicLogin storage is unavailable."));
-                password.zeroize();
-                return Ok(0);
-            };
 
-            (store, state.config.clone(), state.pepper.clone())
+            (
+                state.store.clone(),
+                state.config.clone(),
+                state.pepper.clone(),
+                Arc::clone(&state.messages),
+                state.config.prefix.clone(),
+            )
         };
+
+        let Some(store) = store else {
+            sender.send_error(prefixed(&prefix, &messages.storage_unavailable));
+            password.zeroize();
+            return Ok(0);
+        };
+
+        let username = normalize_username(&player.get_name());
+
+        if let Err(error) = validate_username(&username) {
+            let text = error.message(&messages);
+            sender.send_error(prefixed(&prefix, &text));
+            password.zeroize();
+            return Ok(0);
+        }
+
+        if password.is_empty() {
+            sender.send_error(prefixed(&prefix, &messages.login_empty_password));
+            return Ok(0);
+        }
 
         let now = now_secs();
         let argon2_config = crate::db::argon2_config(&config);
@@ -87,9 +98,7 @@ impl CommandHandler for LoginCommand {
             Ok(record) => record,
             Err(error) => {
                 tracing::error!(error = %error, "failed to read account store");
-                sender.send_error(TextComponent::text(
-                    "Could not access the account database.",
-                ));
+                sender.send_error(prefixed(&prefix, &messages.database_error));
                 password.zeroize();
                 return Ok(0);
             }
@@ -98,10 +107,9 @@ impl CommandHandler for LoginCommand {
         if let Some(existing) = &record
             && is_locked(existing, now)
         {
-            let remaining = existing.locked_until - now;
-            sender.send_error(TextComponent::text(&format!(
-                "Too many failed attempts. Try again in {remaining} seconds."
-            )));
+            let remaining = (existing.locked_until - now).to_string();
+            let text = format_text(&messages.login_locked, &[("seconds", &remaining)]);
+            sender.send_error(prefixed(&prefix, &text));
             password.zeroize();
             return Ok(0);
         }
@@ -112,7 +120,7 @@ impl CommandHandler for LoginCommand {
                     Ok(matches) => matches,
                     Err(error) => {
                         tracing::error!(error = %error, "failed to verify password");
-                        sender.send_error(TextComponent::text("Could not process the password."));
+                        sender.send_error(prefixed(&prefix, &messages.password_error));
                         password.zeroize();
                         return Ok(0);
                     }
@@ -140,7 +148,7 @@ impl CommandHandler for LoginCommand {
             player.set_movement_locked(false);
 
             tracing::info!(player = %username, "authenticated CubicLogin account");
-            sender.send_message(TextComponent::text("Login successful."));
+            sender.send_message(prefixed(&prefix, &messages.login_success));
             return Ok(1);
         }
 
@@ -157,11 +165,19 @@ impl CommandHandler for LoginCommand {
             }
         }
 
-        sender.send_error(TextComponent::text("Incorrect username or password."));
+        sender.send_error(prefixed(&prefix, &messages.login_failed));
         Ok(0)
     }
 }
 
+fn ui_fallback() -> (Arc<MessageTexts>, String) {
+    (
+        Arc::new(MessageTexts::default()),
+        DEFAULT_PREFIX.to_string(),
+    )
+}
+
 fn state_unavailable() -> CommandError {
-    CommandError::CommandFailed(TextComponent::text("CubicLogin state is unavailable."))
+    let (messages, prefix) = ui_fallback();
+    CommandError::CommandFailed(prefixed(&prefix, &messages.state_unavailable))
 }

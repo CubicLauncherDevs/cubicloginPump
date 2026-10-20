@@ -1,15 +1,20 @@
+use std::sync::Arc;
+
 use pumpkin_plugin_api::command::{
     Arg, ArgumentType, Command, CommandError, CommandNode, CommandSender, ConsumedArgs, StringType,
 };
 use pumpkin_plugin_api::commands::CommandHandler;
-use pumpkin_plugin_api::text::TextComponent;
 use pumpkin_plugin_api::{Context, Server};
 use zeroize::Zeroize;
 
+use crate::config::DEFAULT_PREFIX;
 use crate::db::hashing;
+use crate::i18n::{MessageTexts, prefixed};
 use crate::permissions;
 use crate::state::SharedState;
-use crate::storage::{AccountRecord, now_secs, validate_password, validate_username};
+use crate::storage::{
+    AccountRecord, normalize_username, now_secs, validate_password, validate_username,
+};
 
 pub fn register_command(context: &Context, state: SharedState) -> Result<(), String> {
     let command = Command::new(&["register".to_string()], "Create a CubicLogin account").then(
@@ -51,71 +56,78 @@ impl CommandHandler for RegisterCommand {
         };
 
         let Some(player) = sender.as_player() else {
-            sender.send_error(TextComponent::text("Only players can use /register."));
+            let (messages, prefix) = ui_fallback();
+            sender.send_error(prefixed(&prefix, &messages.only_players_register));
             password.zeroize();
             confirm_password.zeroize();
             return Ok(0);
         };
 
-        let username = crate::storage::normalize_username(&player.get_name());
+        let (store, config, pepper, messages, prefix) = {
+            let state = match self.state.read() {
+                Ok(state) => state,
+                Err(_) => {
+                    password.zeroize();
+                    confirm_password.zeroize();
+                    return Err(state_unavailable());
+                }
+            };
 
-        if let Err(reason) = validate_username(&username) {
-            sender.send_error(TextComponent::text(&reason));
+            (
+                state.store.clone(),
+                state.config.clone(),
+                state.pepper.clone(),
+                Arc::clone(&state.messages),
+                state.config.prefix.clone(),
+            )
+        };
+
+        let Some(store) = store else {
+            sender.send_error(prefixed(&prefix, &messages.storage_unavailable));
+            password.zeroize();
+            confirm_password.zeroize();
+            return Ok(0);
+        };
+
+        let username = normalize_username(&player.get_name());
+
+        if let Err(error) = validate_username(&username) {
+            let text = error.message(&messages);
+            sender.send_error(prefixed(&prefix, &text));
             password.zeroize();
             confirm_password.zeroize();
             return Ok(0);
         }
 
         if password != confirm_password {
-            sender.send_error(TextComponent::text("The passwords do not match."));
+            sender.send_error(prefixed(&prefix, &messages.register_mismatch));
             password.zeroize();
             confirm_password.zeroize();
             return Ok(0);
         }
         confirm_password.zeroize();
 
-        let (store, config, pepper) = {
-            let state = match self.state.read() {
-                Ok(state) => state,
-                Err(_) => {
-                    password.zeroize();
-                    return Err(state_unavailable());
-                }
-            };
-            let Some(store) = state.store.clone() else {
-                drop(state);
-                sender.send_error(TextComponent::text("CubicLogin storage is unavailable."));
-                password.zeroize();
-                return Ok(0);
-            };
-
-            (store, state.config.clone(), state.pepper.clone())
-        };
-
-        if let Err(reason) = validate_password(
+        if let Err(error) = validate_password(
             &password,
             config.min_password_length,
             config.max_password_length,
         ) {
-            sender.send_error(TextComponent::text(&reason));
+            let text = error.message(&messages);
+            sender.send_error(prefixed(&prefix, &text));
             password.zeroize();
             return Ok(0);
         }
 
         match store.get(&username) {
             Ok(Some(_)) => {
-                sender.send_error(TextComponent::text(
-                    "A CubicLogin account already exists for this player.",
-                ));
+                sender.send_error(prefixed(&prefix, &messages.account_exists));
                 password.zeroize();
                 return Ok(0);
             }
             Ok(None) => {}
             Err(error) => {
                 tracing::error!(error = %error, "failed to read account store");
-                sender.send_error(TextComponent::text(
-                    "Could not access the account database.",
-                ));
+                sender.send_error(prefixed(&prefix, &messages.database_error));
                 password.zeroize();
                 return Ok(0);
             }
@@ -127,7 +139,7 @@ impl CommandHandler for RegisterCommand {
                 Ok(result) => result,
                 Err(error) => {
                     tracing::error!(error = %error, "failed to hash password");
-                    sender.send_error(TextComponent::text("Could not process the password."));
+                    sender.send_error(prefixed(&prefix, &messages.password_error));
                     password.zeroize();
                     return Ok(0);
                 }
@@ -157,26 +169,30 @@ impl CommandHandler for RegisterCommand {
                 player.set_movement_locked(false);
 
                 tracing::info!(player = %username, "registered and authenticated CubicLogin account");
-                sender.send_message(TextComponent::text(
-                    "Registration successful. You are now logged in.",
-                ));
+                sender.send_message(prefixed(&prefix, &messages.register_success));
                 Ok(1)
             }
             Ok(false) => {
-                sender.send_error(TextComponent::text(
-                    "A CubicLogin account already exists for this player.",
-                ));
+                sender.send_error(prefixed(&prefix, &messages.account_exists));
                 Ok(0)
             }
             Err(error) => {
                 tracing::error!(error = %error, "failed to persist account");
-                sender.send_error(TextComponent::text("Could not save the account."));
+                sender.send_error(prefixed(&prefix, &messages.account_save_error));
                 Ok(0)
             }
         }
     }
 }
 
+fn ui_fallback() -> (Arc<MessageTexts>, String) {
+    (
+        Arc::new(MessageTexts::default()),
+        DEFAULT_PREFIX.to_string(),
+    )
+}
+
 fn state_unavailable() -> CommandError {
-    CommandError::CommandFailed(TextComponent::text("CubicLogin state is unavailable."))
+    let (messages, prefix) = ui_fallback();
+    CommandError::CommandFailed(prefixed(&prefix, &messages.state_unavailable))
 }

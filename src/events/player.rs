@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use pumpkin_plugin_api::Server;
 use pumpkin_plugin_api::events::{
     BlockBreakEvent, BlockPlaceEvent, CraftItemEvent, EventHandler, InventoryClickEvent,
@@ -25,6 +27,8 @@ use pumpkin_plugin_api::events_wit::{
 };
 use pumpkin_plugin_api::text::TextComponent;
 
+use crate::config::DEFAULT_PREFIX;
+use crate::i18n::{MessageTexts, component, prefixed};
 use crate::state::SharedState;
 use crate::storage::{normalize_username, validate_username};
 
@@ -35,12 +39,22 @@ fn needs_authentication(state: &SharedState, username: &str) -> bool {
         .unwrap_or(false)
 }
 
-fn blocked_message() -> TextComponent {
-    TextComponent::text(
-        "You must register or log in first: /register <password> <password> or /login <password>.",
-    )
-    .click_suggest_command("/login ")
-    .hover_show_text(TextComponent::text("Click to fill in the login command"))
+fn ui_snapshot(state: &SharedState) -> (Arc<MessageTexts>, String) {
+    match state.read() {
+        Ok(state) => (Arc::clone(&state.messages), state.config.prefix.clone()),
+        Err(_) => (
+            Arc::new(MessageTexts::default()),
+            DEFAULT_PREFIX.to_string(),
+        ),
+    }
+}
+
+fn blocked_message(state: &SharedState) -> TextComponent {
+    let (messages, prefix) = ui_snapshot(state);
+
+    prefixed(&prefix, &messages.blocked)
+        .click_suggest_command("/login ")
+        .hover_show_text(component(&messages.hover_login))
 }
 
 fn is_auth_command(command: &str) -> bool {
@@ -62,13 +76,18 @@ impl PlayerJoinHandler {
 impl EventHandler<PlayerJoinEvent> for PlayerJoinHandler {
     fn handle(&self, _server: Server, event: PlayerJoinEventData) -> PlayerJoinEventData {
         let username = normalize_username(&event.player.get_name());
-        let (require_login, store) = {
+        let (require_login, store, messages, prefix) = {
             let mut state = match self.state.write() {
                 Ok(state) => state,
                 Err(_) => return event,
             };
             state.clear_authenticated(&username);
-            (state.config.require_login_on_join, state.store.clone())
+            (
+                state.config.require_login_on_join,
+                state.store.clone(),
+                Arc::clone(&state.messages),
+                state.config.prefix.clone(),
+            )
         };
 
         tracing::info!(
@@ -88,11 +107,17 @@ impl EventHandler<PlayerJoinEvent> for PlayerJoinHandler {
             match store.get(&username) {
                 Ok(Some(_)) => {
                     tracing::info!(player = %username, "account found, prompting login");
-                    event.player.send_system_message(login_message(), false);
+                    let message = prefixed(&prefix, &messages.join_login)
+                        .click_suggest_command("/login ")
+                        .hover_show_text(component(&messages.hover_login));
+                    event.player.send_system_message(message, false);
                 }
                 Ok(None) => {
                     tracing::info!(player = %username, "no account found, prompting registration");
-                    event.player.send_system_message(register_message(), false);
+                    let message = prefixed(&prefix, &messages.join_register)
+                        .click_suggest_command("/register ")
+                        .hover_show_text(component(&messages.hover_register));
+                    event.player.send_system_message(message, false);
                 }
                 Err(error) => {
                     tracing::error!(
@@ -106,18 +131,6 @@ impl EventHandler<PlayerJoinEvent> for PlayerJoinHandler {
 
         event
     }
-}
-
-fn login_message() -> TextComponent {
-    TextComponent::text("Welcome back! Please authenticate with /login <password>.")
-        .click_suggest_command("/login ")
-        .hover_show_text(TextComponent::text("Click to fill in the login command"))
-}
-
-fn register_message() -> TextComponent {
-    TextComponent::text("Welcome! Create your account with /register <password> <password>.")
-        .click_suggest_command("/register ")
-        .hover_show_text(TextComponent::text("Click to fill in the register command"))
 }
 
 pub struct PlayerChatHandler {
@@ -136,7 +149,9 @@ impl EventHandler<PlayerChatEvent> for PlayerChatHandler {
 
         if needs_authentication(&self.state, &username) {
             event.cancelled = true;
-            event.player.send_system_message(blocked_message(), false);
+            event
+                .player
+                .send_system_message(blocked_message(&self.state), false);
         }
 
         event
@@ -163,7 +178,9 @@ impl EventHandler<PlayerCommandSendEvent> for PlayerCommandHandler {
 
         if needs_authentication(&self.state, &username) && !is_auth_command(&event.command) {
             event.cancelled = true;
-            event.player.send_system_message(blocked_message(), false);
+            event
+                .player
+                .send_system_message(blocked_message(&self.state), false);
         }
 
         event

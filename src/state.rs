@@ -4,10 +4,12 @@ use std::sync::{Arc, RwLock};
 
 use crate::config::PluginConfig;
 use crate::db::AccountRepo;
+use crate::i18n::MessageTexts;
 
 #[derive(Default)]
 pub struct PluginState {
     pub config: PluginConfig,
+    pub messages: Arc<MessageTexts>,
     pub store: Option<Arc<dyn AccountRepo>>,
     pub pepper: Option<Vec<u8>>,
     pub data_dir: PathBuf,

@@ -1,0 +1,52 @@
+# ============================================================
+#  CubicLogin - Mensajes en español
+# ============================================================
+#
+#  - Colores legacy con '&' (ej. &b, &l, &r, &x&f&c&0&0&0&0).
+#  - Marcadores: {min}, {max}, {seconds}.
+#  - Borra una clave para usar el texto inglés embebido.
+#  - El prefijo del chat se configura en config.toml.
+
+# ------------------------------------------------------------
+#  Entrada y autenticación
+# ------------------------------------------------------------
+join_login = "¡Bienvenido de nuevo! Autentícate con /login <contraseña>."
+join_register = "¡Bienvenido! Crea tu cuenta con /register <contraseña> <contraseña>."
+blocked = "Debes registrarte o iniciar sesión primero: /register <contraseña> <contraseña> o /login <contraseña>."
+hover_login = "Haz clic para completar el comando de inicio de sesión"
+hover_register = "Haz clic para completar el comando de registro"
+
+# ------------------------------------------------------------
+#  Inicio de sesión
+# ------------------------------------------------------------
+only_players_login = "Solo los jugadores pueden usar /login."
+login_empty_password = "La contraseña no puede estar vacía."
+login_locked = "Demasiados intentos fallidos. Inténtalo de nuevo en {seconds} segundos."
+login_success = "Sesión iniciada correctamente."
+login_failed = "Usuario o contraseña incorrectos."
+
+# ------------------------------------------------------------
+#  Registro
+# ------------------------------------------------------------
+only_players_register = "Solo los jugadores pueden usar /register."
+register_mismatch = "Las contraseñas no coinciden."
+register_success = "Registro completado. Has iniciado sesión automáticamente."
+account_exists = "Ya existe una cuenta de CubicLogin para este jugador."
+account_save_error = "No se pudo guardar la cuenta."
+
+# ------------------------------------------------------------
+#  Validación
+# ------------------------------------------------------------
+username_too_short = "El nombre de usuario debe tener al menos {min} caracteres."
+username_too_long = "El nombre de usuario debe tener como máximo {max} caracteres."
+username_invalid = "El nombre de usuario solo puede contener letras, números y guiones bajos."
+password_too_short = "La contraseña debe tener al menos {min} caracteres."
+password_too_long = "La contraseña debe tener como máximo {max} caracteres."
+
+# ------------------------------------------------------------
+#  Errores internos
+# ------------------------------------------------------------
+storage_unavailable = "El almacenamiento de CubicLogin no está disponible."
+database_error = "No se pudo acceder a la base de datos de cuentas."
+password_error = "No se pudo procesar la contraseña."
+state_unavailable = "El estado de CubicLogin no está disponible."
