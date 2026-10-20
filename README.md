@@ -90,6 +90,9 @@ plugins/data/CubicLogin/
 | --- | --- |
 | `/register <contraseña> <confirmar_contraseña>` | Crea una cuenta. Si el registro es correcto, el jugador inicia sesión automáticamente. |
 | `/login <contraseña>` | Autentica una cuenta existente. |
+| `/cubiclogin reload` | Recarga la configuración y los idiomas sin reiniciar. Requiere el permiso `CubicLogin:admin`. |
+
+Los cambios en `encryption`, `db_key_env` y `pepper_env` requieren reiniciar el servidor.
 
 ## Configuración
 

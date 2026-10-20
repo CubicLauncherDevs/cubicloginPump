@@ -18,7 +18,7 @@ Select a language in `config.toml`:
 language = "en" # "en", "es", or a custom language code
 ```
 
-Restart the server after changing the language.
+Restart the server after changing the language, or apply the change with `/cubiclogin reload`.
 
 ## Built-in languages
 
@@ -30,14 +30,15 @@ Restart the server after changing the language.
 On startup, `lang/en.toml` and `lang/es.toml` are created if they do not exist. Both files are plain
 TOML and can be edited freely. Existing files are never overwritten.
 
-To restore the default text of a built-in language, delete its file and restart the server.
+To restore the default text of a built-in language, delete its file and run `/cubiclogin reload` (or
+restart the server).
 
 ## Custom languages
 
 1. Copy `lang/en.toml` to `lang/<code>.toml` (for example, `lang/fr.toml`).
 2. Translate the values. Keys must stay unchanged.
 3. Set `language = "<code>"` in `config.toml`.
-4. Restart the server.
+4. Run `/cubiclogin reload` or restart the server.
 
 Language codes are case-insensitive and may contain letters, numbers, `_`, and `-`. A missing or
 invalid language file falls back to English with a warning in the console.
@@ -120,6 +121,10 @@ Some messages include interactive text:
 | `database_error` | | Could not access the account database. |
 | `password_error` | | Could not process the password. |
 | `state_unavailable` | | CubicLogin state is unavailable. |
+| `reload_success` | | CubicLogin reloaded. |
+| `reload_failed` | `{error}` | CubicLogin reload failed: {error} |
+| `reload_restart_required` | `{fields}` | Restart required for: {fields} |
+| `reload_usage` | | Usage: /cubiclogin reload |
 
 ## Example
 

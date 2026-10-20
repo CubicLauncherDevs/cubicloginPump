@@ -88,6 +88,9 @@ plugins/data/CubicLogin/
 | --- | --- |
 | `/register <password> <confirm_password>` | Create an account. A successful registration logs the player in automatically. |
 | `/login <password>` | Authenticate an existing account. |
+| `/cubiclogin reload` | Reload configuration and language files without restarting. Requires the `CubicLogin:admin` permission. |
+
+Changes to `encryption`, `db_key_env`, and `pepper_env` require a server restart.
 
 ## Configuration
 

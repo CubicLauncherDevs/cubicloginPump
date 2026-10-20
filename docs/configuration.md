@@ -22,6 +22,23 @@ Older versions used `config.json`. On startup:
 When a new plugin version adds options, missing keys are appended automatically. Existing values and
 comments are preserved.
 
+## Reloading
+
+Use `/cubiclogin reload` to re-read `config.toml` and the active language file without restarting
+the server. The command requires the `CubicLogin:admin` permission (op level 4 by default).
+
+Applied immediately:
+
+- `language` and `prefix`
+- `require_login_on_join`
+- password length limits and lockout policy
+- Argon2 parameters for new password hashes
+
+Authenticated sessions are preserved across a reload.
+
+Changes to `encryption`, `db_key_env`, or `pepper_env` are rejected with a restart-required message.
+If the configuration file is invalid, the previous configuration stays active.
+
 ## Reference
 
 | Key | Type | Default | Description |
