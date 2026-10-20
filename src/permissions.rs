@@ -18,7 +18,7 @@ pub fn register(context: &Context) -> Result<(), String> {
     ))?;
     context.register_permission(&permission(
         ADMIN,
-        "Allows management of CubicLogin accounts",
+        "Allows management and reloading of CubicLogin",
         PermissionDefault::Op(PermissionLevel::Four),
     ))?;
 
