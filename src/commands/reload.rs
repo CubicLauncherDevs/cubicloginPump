@@ -8,11 +8,12 @@ use pumpkin_plugin_api::command::{
 use pumpkin_plugin_api::commands::CommandHandler;
 use pumpkin_plugin_api::{Context, Server};
 
+use crate::auth;
 use crate::config::{self, DEFAULT_PREFIX, PluginConfig};
 use crate::db;
 use crate::i18n::{self, MessageTexts, format_text, prefixed};
 use crate::permissions;
-use crate::state::SharedState;
+use crate::state::{AuthPrompt, SharedState};
 use crate::storage::{normalize_username, validate_username};
 
 pub fn register(context: &Context, state: SharedState) -> Result<(), String> {
@@ -125,12 +126,40 @@ impl CommandHandler for ReloadCommand {
             state.pepper = pepper;
         }
 
+        if !require_login && let Ok(mut state) = self.state.write() {
+            state.pending_auth.clear();
+        }
+
+        let store = self.state.read().ok().and_then(|state| state.store.clone());
+
         for player in server.get_all_players() {
             let username = normalize_username(&player.get_name());
-            let should_lock = require_login
-                && validate_username(&username).is_ok()
-                && !snapshot.authenticated.contains(&username);
+            let valid_username = validate_username(&username).is_ok();
+            let authenticated = snapshot.authenticated.contains(&username);
+            let should_lock = require_login && valid_username && !authenticated;
             player.set_movement_locked(should_lock);
+
+            if should_lock {
+                let prompt = match &store {
+                    Some(store) => match store.get(&username) {
+                        Ok(Some(_)) => AuthPrompt::Login,
+                        Ok(None) => AuthPrompt::Register,
+                        Err(error) => {
+                            tracing::error!(
+                                error = %error,
+                                player = %username,
+                                "failed to read account store during reload"
+                            );
+                            AuthPrompt::Fallback
+                        }
+                    },
+                    None => AuthPrompt::Fallback,
+                };
+
+                auth::begin(&self.state, &player, &username, prompt);
+            } else {
+                auth::clear_presentation(&player);
+            }
         }
 
         sender.send_message(prefixed(&prefix, &success));

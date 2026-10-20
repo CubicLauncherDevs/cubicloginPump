@@ -27,9 +27,10 @@ use pumpkin_plugin_api::events_wit::{
 };
 use pumpkin_plugin_api::text::TextComponent;
 
+use crate::auth;
 use crate::config::DEFAULT_PREFIX;
 use crate::i18n::{MessageTexts, component, prefixed};
-use crate::state::SharedState;
+use crate::state::{AuthPrompt, SharedState};
 use crate::storage::{normalize_username, validate_username};
 
 fn needs_authentication(state: &SharedState, username: &str) -> bool {
@@ -104,13 +105,14 @@ impl EventHandler<PlayerJoinEvent> for PlayerJoinHandler {
             && validate_username(&username).is_ok()
             && let Some(store) = store
         {
-            match store.get(&username) {
+            let prompt = match store.get(&username) {
                 Ok(Some(_)) => {
                     tracing::info!(player = %username, "account found, prompting login");
                     let message = prefixed(&prefix, &messages.join_login)
                         .click_suggest_command("/login ")
                         .hover_show_text(component(&messages.hover_login));
                     event.player.send_system_message(message, false);
+                    AuthPrompt::Login
                 }
                 Ok(None) => {
                     tracing::info!(player = %username, "no account found, prompting registration");
@@ -118,6 +120,7 @@ impl EventHandler<PlayerJoinEvent> for PlayerJoinHandler {
                         .click_suggest_command("/register ")
                         .hover_show_text(component(&messages.hover_register));
                     event.player.send_system_message(message, false);
+                    AuthPrompt::Register
                 }
                 Err(error) => {
                     tracing::error!(
@@ -125,8 +128,11 @@ impl EventHandler<PlayerJoinEvent> for PlayerJoinHandler {
                         player = %username,
                         "failed to read account store on join"
                     );
+                    AuthPrompt::Fallback
                 }
-            }
+            };
+
+            auth::begin(&self.state, &event.player, &username, prompt);
         }
 
         event
@@ -397,14 +403,19 @@ impl PlayerLeaveHandler {
 impl EventHandler<PlayerLeaveEvent> for PlayerLeaveHandler {
     fn handle(&self, _server: Server, event: PlayerLeaveEventData) -> PlayerLeaveEventData {
         let username = normalize_username(&event.player.get_name());
-        let require_login = {
+        let (require_login, had_pending_auth) = {
             let mut state = match self.state.write() {
                 Ok(state) => state,
                 Err(_) => return event,
             };
+            let had_pending_auth = state.finish_authentication(&username).is_some();
             state.clear_authenticated(&username);
-            state.config.require_login_on_join
+            (state.config.require_login_on_join, had_pending_auth)
         };
+
+        if had_pending_auth {
+            auth::clear_presentation(&event.player);
+        }
 
         tracing::info!(
             player = %username,

@@ -16,6 +16,8 @@ sesión o se registren.
 - Limbo completo para jugadores sin autenticar: chat, comandos, movimiento, interacción con bloques,
   inventario, uso de objetos y la mayoría de acciones están bloqueadas.
 - Inicio de sesión automático tras un registro correcto.
+- Pantalla de autenticación oscura con título de login/registro, cuenta atrás visible y expulsión
+  automática al agotarse el tiempo.
 - Aviso al entrar con sugerencias clicables de `/login` y `/register`.
 - Mensajes en inglés y español, configurables por clave, además de idiomas personalizados.
 - Configuración TOML con migración automática desde el formato JSON anterior.
@@ -106,6 +108,7 @@ prefix = "&b[CubicLogin]&r "
 require_login_on_join = true
 min_password_length = 8
 max_password_length = 64
+session_timeout_seconds = 60
 max_failed_attempts = 5
 lockout_seconds = 300
 encryption = "required"

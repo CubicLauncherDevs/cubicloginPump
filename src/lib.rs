@@ -1,3 +1,4 @@
+mod auth;
 mod commands;
 mod config;
 mod db;
@@ -8,7 +9,7 @@ mod state;
 mod storage;
 
 use std::path::PathBuf;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 
 use pumpkin_plugin_api::{Context, Plugin, PluginMetadata, Result, register_plugin};
 
@@ -16,12 +17,14 @@ use crate::state::PluginState;
 
 pub struct CubicLoginPlugin {
     state: Arc<RwLock<PluginState>>,
+    auth_task: Mutex<Option<u32>>,
 }
 
 impl Plugin for CubicLoginPlugin {
     fn new() -> Self {
         Self {
             state: Arc::new(RwLock::new(PluginState::default())),
+            auth_task: Mutex::new(None),
         }
     }
 
@@ -64,6 +67,11 @@ impl Plugin for CubicLoginPlugin {
         commands::register(&context, Arc::clone(&self.state))?;
         events::register(&context, Arc::clone(&self.state))?;
 
+        let task_id = auth::spawn_ticker(&context.get_server(), Arc::clone(&self.state));
+        if let Ok(mut task) = self.auth_task.lock() {
+            *task = Some(task_id);
+        }
+
         tracing::info!(
             config = %loaded_config.path.display(),
             data_dir = %data_dir.display(),
@@ -75,12 +83,20 @@ impl Plugin for CubicLoginPlugin {
     }
 
     fn on_unload(&self, context: Context) -> Result<()> {
+        if let Ok(mut task) = self.auth_task.lock()
+            && let Some(task_id) = task.take()
+        {
+            pumpkin_plugin_api::scheduler::cancel_task(task_id);
+        }
+
         for player in context.get_server().get_all_players() {
+            auth::clear_presentation(&player);
             player.set_movement_locked(false);
         }
 
         if let Ok(mut state) = self.state.write() {
             state.authenticated.clear();
+            state.pending_auth.clear();
         }
 
         tracing::info!("CubicLogin unloaded");

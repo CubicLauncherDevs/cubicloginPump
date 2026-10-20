@@ -31,6 +31,7 @@ Se aplica de inmediato:
 
 - `language` y `prefix`
 - `require_login_on_join`
+- `session_timeout_seconds` (las cuentas atrás pendientes se reinician)
 - los límites de longitud de contraseña y la política de bloqueo
 - los parámetros de Argon2 para los nuevos hashes de contraseña
 
@@ -39,6 +40,15 @@ Las sesiones autenticadas se conservan al recargar.
 Los cambios en `encryption`, `db_key_env` o `pepper_env` se rechazan con un mensaje que indica que
 hay que reiniciar. Si el archivo de configuración no es válido, se mantiene la configuración
 anterior.
+
+## Pantalla de autenticación
+
+Los jugadores que todavía deben autenticarse quedan en un limbo oscuro con un título grande de
+inicio de sesión o registro, una pista del comando y una cuenta atrás en la barra de acción. Cuando
+la cuenta atrás llega a cero, el jugador es expulsado con un mensaje traducido.
+
+Configura `session_timeout_seconds = 0` para mantener la pantalla oscura y el título, pero desactivar
+la cuenta atrás y la expulsión automática. El jugador sigue bloqueado hasta autenticarse o salir.
 
 ## Referencia
 
@@ -49,7 +59,7 @@ anterior.
 | `require_login_on_join` | boolean | `true` | Requiere autenticación después de entrar. |
 | `min_password_length` | integer | `8` | Longitud mínima de la contraseña. |
 | `max_password_length` | integer | `64` | Longitud máxima de la contraseña. |
-| `session_timeout_seconds` | integer | `300` | Reservado para futuras sesiones; actualmente sin uso. |
+| `session_timeout_seconds` | integer | `60` | Segundos antes de expulsar a jugadores sin autenticar. `0` desactiva la cuenta atrás y la expulsión automática. |
 | `max_failed_attempts` | integer | `5` | Intentos de inicio de sesión fallidos antes de un bloqueo temporal. `0` desactiva los bloqueos. |
 | `lockout_seconds` | integer | `300` | Duración del bloqueo en segundos. |
 | `argon2_memory_kib` | integer | `19456` | Coste de memoria de Argon2id en KiB. |
@@ -78,7 +88,7 @@ prefix = "&b[CubicLogin]&r "
 require_login_on_join = true
 min_password_length = 8
 max_password_length = 64
-session_timeout_seconds = 300
+session_timeout_seconds = 60
 max_failed_attempts = 5
 lockout_seconds = 300
 

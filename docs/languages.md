@@ -56,6 +56,7 @@ Some messages support placeholders. Keep them in your translation if they are pr
 | Placeholder | Value |
 | --- | --- |
 | `{seconds}` | Remaining lockout time in seconds |
+| `{time}` | Remaining authentication time, formatted as `m:ss` |
 | `{min}` | Minimum configured length |
 | `{max}` | Maximum configured length |
 
@@ -99,6 +100,14 @@ Some messages include interactive text:
 | --- | --- | --- |
 | `join_login` | | Welcome back! Please authenticate with /login <password>. |
 | `join_register` | | Welcome! Create your account with /register <password> <password>. |
+| `auth_title_login` | | &b&lSIGN IN |
+| `auth_title_register` | | &a&lCREATE YOUR ACCOUNT |
+| `auth_title_fallback` | | &b&lCUBICLOGIN |
+| `auth_subtitle_login` | | &7Use &f/login <password> &7to continue. |
+| `auth_subtitle_register` | | &7Use &f/register <password> <password> &7to continue. |
+| `auth_subtitle_fallback` | | &7Sign in or create an account to continue. |
+| `auth_countdown` | `{time}` | &eTime remaining: &f{time} |
+| `auth_timeout_kick` | | &cAuthentication time expired. Rejoin and use &f/login &cor &f/register&c. |
 | `blocked` | | You must register or log in first: /register <password> <password> or /login <password>. |
 | `hover_login` | | Click to fill in the login command |
 | `hover_register` | | Click to fill in the register command |
@@ -134,11 +143,19 @@ Some messages include interactive text:
 # ============================================================
 #
 #  - Legacy color codes use '&' (e.g. &b, &l, &r).
-#  - Placeholders: {min}, {max}, {seconds}.
+#  - Placeholders: {min}, {max}, {seconds}, {time}.
 
 # --- Join and authentication prompts ---
 join_login = "&eWelcome back! &fPlease authenticate with &b/login <password>&f."
 join_register = "&eWelcome! &fCreate your account with &b/register <password> <password>&f."
+auth_title_login = "&b&lSIGN IN"
+auth_title_register = "&a&lCREATE YOUR ACCOUNT"
+auth_title_fallback = "&b&lCUBICLOGIN"
+auth_subtitle_login = "&7Use &f/login <password> &7to continue."
+auth_subtitle_register = "&7Use &f/register <password> <password> &7to continue."
+auth_subtitle_fallback = "&7Sign in or create an account to continue."
+auth_countdown = "&eTime remaining: &f{time}"
+auth_timeout_kick = "&cAuthentication time expired. Rejoin and use &f/login &cor &f/register&c."
 blocked = "&cYou must register or log in first: &b/register <password> <password> &cor &b/login <password>&c."
 hover_login = "Click to fill in the login command"
 hover_register = "Click to fill in the register command"

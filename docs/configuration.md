@@ -31,6 +31,7 @@ Applied immediately:
 
 - `language` and `prefix`
 - `require_login_on_join`
+- `session_timeout_seconds` (pending countdowns are restarted)
 - password length limits and lockout policy
 - Argon2 parameters for new password hashes
 
@@ -38,6 +39,15 @@ Authenticated sessions are preserved across a reload.
 
 Changes to `encryption`, `db_key_env`, or `pepper_env` are rejected with a restart-required message.
 If the configuration file is invalid, the previous configuration stays active.
+
+## Authentication screen
+
+Players who still need to authenticate are placed in a dark limbo with a large login or registration
+title, a command hint, and a countdown in the action bar. When the countdown reaches zero, the player
+is kicked with a localized message.
+
+Set `session_timeout_seconds = 0` to keep the dark screen and title but disable the countdown and
+automatic kick. The player stays locked until they authenticate or leave.
 
 ## Reference
 
@@ -48,7 +58,7 @@ If the configuration file is invalid, the previous configuration stays active.
 | `require_login_on_join` | boolean | `true` | Require authentication after joining. |
 | `min_password_length` | integer | `8` | Minimum password length. |
 | `max_password_length` | integer | `64` | Maximum password length. |
-| `session_timeout_seconds` | integer | `300` | Reserved for future session handling; currently unused. |
+| `session_timeout_seconds` | integer | `60` | Seconds before unauthenticated players are kicked. `0` disables the countdown and automatic kick. |
 | `max_failed_attempts` | integer | `5` | Failed logins before a temporary lockout. `0` disables lockouts. |
 | `lockout_seconds` | integer | `300` | Lockout duration in seconds. |
 | `argon2_memory_kib` | integer | `19456` | Argon2id memory cost in KiB. |
@@ -77,7 +87,7 @@ prefix = "&b[CubicLogin]&r "
 require_login_on_join = true
 min_password_length = 8
 max_password_length = 64
-session_timeout_seconds = 300
+session_timeout_seconds = 60
 max_failed_attempts = 5
 lockout_seconds = 300
 

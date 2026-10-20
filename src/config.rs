@@ -51,7 +51,7 @@ impl Default for PluginConfig {
             require_login_on_join: true,
             min_password_length: 8,
             max_password_length: 64,
-            session_timeout_seconds: 300,
+            session_timeout_seconds: 60,
             max_failed_attempts: 5,
             lockout_seconds: 300,
             argon2_memory_kib: 19456,
@@ -167,7 +167,8 @@ require_login_on_join = {require_login_on_join}
 min_password_length = {min_password_length}
 max_password_length = {max_password_length}
 
-# Reserved for future session handling (currently unused).
+# Seconds before unauthenticated players are kicked. Set to 0 to disable
+# the countdown and automatic kick while keeping the authentication limbo.
 session_timeout_seconds = {session_timeout_seconds}
 
 # Lockout policy after repeated failed login attempts.
@@ -230,7 +231,7 @@ const FIELD_COMMENTS: &[(&str, &str)] = &[
     ("max_password_length", "Maximum password length."),
     (
         "session_timeout_seconds",
-        "Reserved for future session handling (currently unused).",
+        "Seconds before unauthenticated players are kicked (0 disables the countdown and kick).",
     ),
     (
         "max_failed_attempts",
@@ -320,6 +321,7 @@ mod tests {
 
         assert_eq!(loaded.config.language, "en");
         assert_eq!(loaded.config.prefix, DEFAULT_PREFIX);
+        assert_eq!(loaded.config.session_timeout_seconds, 60);
         assert!(dir.join("config.toml").exists());
 
         let raw = fs::read_to_string(dir.join("config.toml")).unwrap();
@@ -327,6 +329,7 @@ mod tests {
         assert!(raw.contains("prefix = "));
         assert!(raw.contains("#  CubicLogin configuration"));
         assert!(raw.contains("#  Authentication"));
+        assert!(raw.contains("Seconds before unauthenticated players are kicked"));
         assert!(raw.contains("#  Password hashing (Argon2id)"));
         assert!(raw.contains("#  Database"));
 

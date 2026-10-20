@@ -7,6 +7,7 @@ use pumpkin_plugin_api::commands::CommandHandler;
 use pumpkin_plugin_api::{Context, Server};
 use zeroize::Zeroize;
 
+use crate::auth;
 use crate::config::DEFAULT_PREFIX;
 use crate::db::hashing;
 use crate::i18n::{MessageTexts, prefixed};
@@ -167,6 +168,7 @@ impl CommandHandler for RegisterCommand {
                     state.mark_authenticated(&username);
                 }
                 player.set_movement_locked(false);
+                auth::finish(&self.state, &player, &username);
 
                 tracing::info!(player = %username, "registered and authenticated CubicLogin account");
                 sender.send_message(prefixed(&prefix, &messages.register_success));

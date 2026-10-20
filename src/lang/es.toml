@@ -3,7 +3,7 @@
 # ============================================================
 #
 #  - Colores legacy con '&' (ej. &b, &l, &r, &x&f&c&0&0&0&0).
-#  - Marcadores: {min}, {max}, {seconds}.
+#  - Marcadores: {min}, {max}, {seconds}, {time}.
 #  - Borra una clave para usar el texto inglés embebido.
 #  - El prefijo del chat se configura en config.toml.
 
@@ -12,6 +12,14 @@
 # ------------------------------------------------------------
 join_login = "¡Bienvenido de nuevo! Autentícate con /login <contraseña>."
 join_register = "¡Bienvenido! Crea tu cuenta con /register <contraseña> <contraseña>."
+auth_title_login = "&b&lINICIA SESIÓN"
+auth_title_register = "&a&lCREA TU CUENTA"
+auth_title_fallback = "&b&lCUBICLOGIN"
+auth_subtitle_login = "&7Usa &f/login <contraseña> &7para continuar."
+auth_subtitle_register = "&7Usa &f/register <contraseña> <contraseña> &7para continuar."
+auth_subtitle_fallback = "&7Inicia sesión o crea una cuenta para continuar."
+auth_countdown = "&eTiempo restante: &f{time}"
+auth_timeout_kick = "&cTiempo de autenticación agotado. Vuelve a entrar y usa &f/login &co &f/register&c."
 blocked = "Debes registrarte o iniciar sesión primero: /register <contraseña> <contraseña> o /login <contraseña>."
 hover_login = "Haz clic para completar el comando de inicio de sesión"
 hover_register = "Haz clic para completar el comando de registro"

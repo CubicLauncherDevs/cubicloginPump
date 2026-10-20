@@ -15,6 +15,8 @@ unauthenticated players in a safe "limbo" state until they log in or register.
 - Full limbo for unauthenticated players: chat, commands, movement, block interactions, inventory,
   item use, and most player actions are blocked.
 - Automatic login after a successful registration.
+- Dark authentication screen with a login/registration title, visible countdown, and automatic kick
+  when time runs out.
 - Prompt on join with clickable `/login` and `/register` suggestions.
 - English and Spanish messages, configurable per key, plus custom language files.
 - TOML configuration with automatic migration from the legacy JSON format.
@@ -104,6 +106,7 @@ prefix = "&b[CubicLogin]&r "
 require_login_on_join = true
 min_password_length = 8
 max_password_length = 64
+session_timeout_seconds = 60
 max_failed_attempts = 5
 lockout_seconds = 300
 encryption = "required"
