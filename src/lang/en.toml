@@ -50,3 +50,11 @@ storage_unavailable = "CubicLogin storage is unavailable."
 database_error = "Could not access the account database."
 password_error = "Could not process the password."
 state_unavailable = "CubicLogin state is unavailable."
+
+# ------------------------------------------------------------
+#  Administration
+# ------------------------------------------------------------
+reload_success = "CubicLogin reloaded."
+reload_failed = "CubicLogin reload failed: {error}"
+reload_restart_required = "Restart required for: {fields}"
+reload_usage = "Usage: /cubiclogin reload"

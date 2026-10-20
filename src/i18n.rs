@@ -33,6 +33,10 @@ pub struct MessageTexts {
     pub database_error: String,
     pub password_error: String,
     pub state_unavailable: String,
+    pub reload_success: String,
+    pub reload_failed: String,
+    pub reload_restart_required: String,
+    pub reload_usage: String,
 }
 
 impl Default for MessageTexts {
